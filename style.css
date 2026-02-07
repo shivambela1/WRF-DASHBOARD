@@ -1,0 +1,43 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+h2 {
+  padding: 10px;
+}
+
+#controls {
+  padding: 10px;
+  background: #f2f2f2;
+}
+
+#controls select,
+#controls button {
+  margin-left: 5px;
+}
+
+#cbar-container {
+  text-align: center;
+  background: white;
+  padding: 10px 0;
+  border-bottom: 1px solid #ccc;
+}
+
+
+#cbar {
+  width: 42%;      /* LONGER COLORBAR */
+  height: auto;
+}
+
+#latlon {
+  padding: 6px 10px;
+  font-size: 14px;
+  background: #ffffff;
+  border-bottom: 1px solid #ccc;
+}
+
+#map {
+  height: 70vh;
+  width: 100%;
+}
