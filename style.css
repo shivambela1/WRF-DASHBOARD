@@ -1,43 +1,54 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #fafafa;
 }
 
 h2 {
-  padding: 10px;
+  margin: 0;
+  padding: 10px 15px;
 }
 
 #controls {
-  padding: 10px;
+  padding: 10px 15px;
   background: #f2f2f2;
+  border-bottom: 1px solid #ccc;
 }
 
 #controls select,
 #controls button {
-  margin-left: 5px;
+  padding: 4px 8px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+#forecastInfo {
+  padding: 6px 15px;
+  background: #ffffff;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
 }
 
 #cbar-container {
   text-align: center;
+  padding: 12px 0;
   background: white;
-  padding: 10px 0;
   border-bottom: 1px solid #ccc;
 }
 
-
 #cbar {
-  width: 42%;      /* LONGER COLORBAR */
-  height: auto;
+  width: 50%;
+  max-width: 1200px;
 }
 
 #latlon {
-  padding: 6px 10px;
-  font-size: 14px;
+  padding: 6px 15px;
   background: #ffffff;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #ddd;
+  font-size: 13px;
 }
 
 #map {
-  height: 70vh;
+  height: 68vh;
   width: 100%;
 }

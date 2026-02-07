@@ -1,100 +1,158 @@
-// ------------------------------
-// UI elements
-// ------------------------------
+// ================= USER SETTINGS =================
+const forecastStart = new Date("2026-02-08T00:00:00");
+const BASE_FRAME_TIME = 1000;   // 1× speed (ms)
+
+// ================= UI ELEMENTS ===================
 const slider = document.getElementById("timeSlider");
 const label  = document.getElementById("timeLabel");
 const latlonDiv = document.getElementById("latlon");
 const cbarImg = document.getElementById("cbar");
 const varSelect = document.getElementById("varSelect");
+const playBtn = document.getElementById("playBtn");
+const speedSelect = document.getElementById("speedSelect");
 const nextBtn = document.getElementById("nextBtn");
 const prevBtn = document.getElementById("prevBtn");
+const fcStartSpan = document.getElementById("fcStart");
+const fcValidSpan = document.getElementById("fcValid");
 
-// ------------------------------
-// WRF domain bounds
-// ------------------------------
+// ================= DOMAIN ========================
 const wrfBounds = [
-  [28.428466796875, 77.15260314941406],
-  [31.476028442382812, 81.24139404296875]
+  [28.3241, 77.3086],
+  [31.7777, 81.2995]
 ];
 
-// ------------------------------
-// Create map (WITH BASEMAP)
-// ------------------------------
-const map = L.map('map', {
-  zoomControl: true,
-  attributionControl: false
-});
+// ================= MAP ===========================
+const map = L.map("map", { attributionControl: false });
 
 L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
   { maxZoom: 10 }
 ).addTo(map);
 
 map.fitBounds(wrfBounds);
 map.setMaxBounds(wrfBounds);
-map.on('drag', () => map.panInsideBounds(wrfBounds));
 
-// ------------------------------
-// Forecast overlay
-// ------------------------------
-let wrfLayer;
+// ================= IMAGE STATE ===================
+let currentLayer = null;
+let isPlaying = false;
+let timer = null;
+let currentSpeed = 1.0;
 
-function loadWRF() {
-  const fh = slider.value.padStart(3, "0");
-  const variable = varSelect.value;
-
-  if (wrfLayer) map.removeLayer(wrfLayer);
-
-  wrfLayer = L.imageOverlay(
-    `data/${variable}/forecast/fh_${fh}.png`,
-    wrfBounds,
-    { opacity: 0.9, interactive: false }
-  ).addTo(map);
-
-  // Update colorbar
-  cbarImg.src = `data/${variable}/cbar/fh_${fh}.png`;
-
-  label.innerText = `FH +${slider.value}`;
+// ================= HELPERS =======================
+function pad3(n) {
+  return String(n).padStart(3, "0");
 }
 
-// ------------------------------
-// Initial load
-// ------------------------------
-loadWRF();
+function imagePath(fh) {
+  const v = varSelect.value;
+  return `data/${v}/${v}_fc_${pad3(fh)}.png`;
+}
 
-// ------------------------------
-// Slider
-// ------------------------------
-slider.oninput = loadWRF;
+function fadeDuration() {
+  return Math.min(900, (BASE_FRAME_TIME / currentSpeed) * 0.9);
+}
 
-// ------------------------------
-// Variable selector
-// ------------------------------
-varSelect.onchange = loadWRF;
+// ================= SMOOTH FRAME UPDATE ===========
+function showFrame(fh) {
 
-// ------------------------------
-// Forward / backward buttons
-// ------------------------------
-nextBtn.onclick = () => {
-  let v = parseInt(slider.value);
-  if (v < parseInt(slider.max)) {
-    slider.value = v + parseInt(slider.step);
-    loadWRF();
+  const path = imagePath(fh);
+  const img = new Image();
+  img.src = path;
+
+  img.onload = () => {
+    const next = L.imageOverlay(
+      path,
+      wrfBounds,
+      { opacity: 0, interactive: false }
+    ).addTo(map);
+
+    const start = performance.now();
+    const dur = fadeDuration();
+
+    function animate(t) {
+      const p = Math.min((t - start) / dur, 1);
+      next.setOpacity(p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2)/2);
+
+      if (p < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        if (currentLayer) map.removeLayer(currentLayer);
+        currentLayer = next;
+      }
+    }
+
+    requestAnimationFrame(animate);
+  };
+
+  slider.value = fh;
+  label.innerText = `+${fh} h`;
+
+  const valid = new Date(forecastStart.getTime() + fh * 3600 * 1000);
+  fcStartSpan.innerText = forecastStart.toISOString().slice(0,16).replace("T"," ");
+  fcValidSpan.innerText = valid.toISOString().slice(0,16).replace("T"," ");
+
+  cbarImg.src = `data/${varSelect.value}/${varSelect.value}_colorbar.png`;
+}
+
+// ================= ANIMATION =====================
+function advance() {
+  let fh = +slider.value;
+  fh = (fh < slider.max) ? fh + 1 : slider.min;
+  showFrame(fh);
+}
+
+function start() {
+  if (isPlaying) return;
+  isPlaying = true;
+  playBtn.innerText = "⏸ Pause";
+  timer = setInterval(advance, BASE_FRAME_TIME / currentSpeed);
+}
+
+function stop() {
+  if (!isPlaying) return;
+  clearInterval(timer);
+  timer = null;
+  isPlaying = false;
+  playBtn.innerText = "▶ Play";
+}
+
+// ================= CONTROLS ======================
+playBtn.onclick = () => isPlaying ? stop() : start();
+
+speedSelect.onchange = () => {
+  currentSpeed = parseFloat(speedSelect.value);
+  if (isPlaying) {
+    stop();
+    start();   // 🔥 THIS IS WHAT FIXES SPEED
   }
+};
+
+slider.oninput = () => {
+  stop();
+  showFrame(+slider.value);
+};
+
+varSelect.onchange = () => {
+  stop();
+  showFrame(+slider.value);
+};
+
+nextBtn.onclick = () => {
+  stop();
+  showFrame(Math.min(+slider.value + 1, slider.max));
 };
 
 prevBtn.onclick = () => {
-  let v = parseInt(slider.value);
-  if (v > parseInt(slider.min)) {
-    slider.value = v - parseInt(slider.step);
-    loadWRF();
-  }
+  stop();
+  showFrame(Math.max(+slider.value - 1, slider.min));
 };
 
-// ------------------------------
-// Mouse lat-lon
-// ------------------------------
-map.on('mousemove', function (e) {
+// ================= LAT–LON =======================
+map.on("mousemove", e => {
   latlonDiv.innerText =
     `Lat: ${e.latlng.lat.toFixed(3)} , Lon: ${e.latlng.lng.toFixed(3)}`;
 });
+
+// ================= INITIAL =======================
+showFrame(0);
+start();   // 🔥 auto-run on open

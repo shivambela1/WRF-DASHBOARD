@@ -3,10 +3,8 @@
 <head>
   <title>WRF Forecast Dashboard</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -18,21 +16,38 @@
   Variable:
   <select id="varSelect">
     <option value="T2">2m Temperature</option>
-    <option value="RAIN">Rainfall</option>
-    <option value="WIND">Wind Speed</option>
     <option value="RH">Relative Humidity</option>
+    <option value="WIND">Wind Speed</option>
+    <option value="RAIN">Hourly Rainfall</option>
+    <option value="RAIN_DAILY">Daily Rainfall</option>
   </select>
 
-  &nbsp;&nbsp; Forecast Hour:
+  &nbsp;&nbsp; Hour:
   <button id="prevBtn">◀</button>
-  <input type="range" id="timeSlider" min="0" max="384" step="1" value="0">
+  <input type="range" id="timeSlider" min="0" max="239" step="1" value="0">
   <button id="nextBtn">▶</button>
-  <span id="timeLabel">FH +0</span>
+
+  <button id="playBtn">⏸ Pause</button>
+
+  &nbsp;&nbsp; Speed:
+  <select id="speedSelect">
+    <option value="0.5">0.5×</option>
+    <option value="1" selected>1×</option>
+    <option value="2">2×</option>
+    <option value="3">3×</option>
+    <option value="4">4×</option>
+  </select>
+
+  <span id="timeLabel">+0 h</span>
 </div>
 
-<!-- Colorbar -->
+<div id="forecastInfo">
+  Forecast from (IST): <span id="fcStart"></span> |
+  Current Time (IST): <span id="fcValid"></span>
+</div>
+
 <div id="cbar-container">
-  <img id="cbar" src="" alt="Colorbar">
+  <img id="cbar">
 </div>
 
 <div id="latlon">Lat: -- , Lon: --</div>
