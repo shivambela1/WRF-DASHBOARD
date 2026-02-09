@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRF Forecast Dashboard - Uttarakhand</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌤️</text></svg>">
+    
+    <style>
+        /* Additional inline styles for font sizes */
+        .header-info {
+            font-size: 1rem !important; /* Increased from 0.85rem */
+        }
+        
+        .info-item {
+            padding: 8px 15px !important; /* Slightly larger padding */
+        }
+        
+        .time-display {
+            font-size: 1.8rem !important; /* Increased from 1.5rem */
+            padding: 6px 20px !important;
+        }
+        
+        .variable-display {
+            font-size: 1.5rem !important; /* Increased from 1.4rem */
+        }
+        
+        #variableName {
+            font-size: 1.6rem !important; /* Increased */
+        }
+        
+        .map-tip {
+            font-size: 1rem !important; /* Increased from 0.85rem */
+        }
+        
+        .shortcut {
+            font-size: 0.9rem !important; /* Increased from 0.8rem */
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- Top Header -->
+    <header class="main-header">
+        <div class="header-left">
+            <h1><i class="fas fa-cloud-sun"></i> WRF Forecast Dashboard</h1>
+            <p class="subtitle">Uttarakhand Region • High-Resolution Weather Modeling</p>
+        </div>
+        <div class="header-right">
+            <div class="header-info">
+                <div class="info-item">
+                    <i class="far fa-calendar-alt"></i>
+                    <span id="fcStart">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <i class="far fa-clock"></i>
+                    <span id="fcValid">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-hourglass-half"></i>
+                    <span>FH: <span id="currentFH">0</span>/239</span>
+                </div>
+                <!-- Add timezone indicator -->
+                <div class="info-item" style="background: rgba(56, 161, 105, 0.2); border-color: rgba(56, 161, 105, 0.4);">
+                    <i class="fas fa-globe-asia"></i>
+                    <span>IST</span>
+                </div>
+            </div>
+            <!-- Theme Toggle Button -->
+            <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">
+                <i class="fas fa-sun"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Colorbar Section (Top Half) -->
+    <div class="colorbar-section">
+        <div class="colorbar-container">
+            <div class="colorbar-header">
+                <div class="variable-display">
+                    <i class="fas fa-chart-line" id="variableIcon"></i>
+                    <span id="variableName">2m Temperature</span>
+                    <span id="timeLabel" class="time-display">+0 h</span>
+                </div>
+                <div class="colorbar-controls">
+                    <button id="prevBtn" class="nav-btn" title="Previous hour">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <input type="range" id="timeSlider" min="0" max="239" step="1" value="0">
+                    <button id="nextBtn" class="nav-btn" title="Next hour">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button id="playBtn" class="play-btn">
+                        <i class="fas fa-play"></i> Play
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Colorbar Image -->
+            <div class="colorbar-image-container">
+                <img id="cbar" alt="Color bar" class="colorbar-image">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+        <!-- Left Panel - Controls (25%) -->
+        <div class="left-panel">
+            <!-- Variable Selection -->
+            <div class="control-section">
+                <h3><i class="fas fa-sliders-h"></i> Controls</h3>
+                <div class="control-group">
+                    <label for="varSelect"><i class="fas fa-chart-line"></i> Variable</label>
+                    <select id="varSelect" class="styled-select">
+                        <option value="T2"><i class="fas fa-thermometer-half"></i> 2m Temperature (°C)</option>
+                        <option value="RH"><i class="fas fa-tint"></i> Relative Humidity (%)</option>
+                        <option value="WIND"><i class="fas fa-wind"></i> Wind Speed (m/s)</option>
+                        <option value="RAIN"><i class="fas fa-cloud-rain"></i> Hourly Rainfall (mm)</option>
+                    </select>
+                </div>
+                
+                <!-- Speed Control moved here -->
+                <div class="control-group">
+                    <label for="speedSelect"><i class="fas fa-tachometer-alt"></i> Animation Speed</label>
+                    <select id="speedSelect" class="styled-select">
+                        <option value="0.25">0.25× Slow</option>
+                        <option value="0.5">0.5× Moderate</option>
+                        <option value="1" selected>1× Normal</option>
+                        <option value="2">2× Fast</option>
+                        <option value="3">3× Very Fast</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Data Display -->
+            <div class="control-section">
+                <h3><i class="fas fa-map-marker-alt"></i> Location Data</h3>
+                <div class="data-display">
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-globe-asia"></i> Coordinates
+                        </div>
+                        <div class="data-value">
+                            <span id="lat">Lat: --</span><br>
+                            <span id="lon">Lon: --</span>
+                        </div>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-chart-bar"></i> Value
+                        </div>
+                        <div class="data-value" id="varValue" style="font-size: 1.4rem;">
+                            --
+                        </div>
+                    </div>
+                    
+                    <div class="data-item">
+                        <div class="data-label">
+                            <i class="fas fa-th"></i> Grid
+                        </div>
+                        <div class="data-value" id="gridInfo" style="font-size: 1.1rem;">
+                            --
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="control-section">
+                <h3><i class="fas fa-info-circle"></i> Legend</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF0000; opacity: 0.5;"></div>
+                        <span>WRF Domain</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2196F3;"></div>
+                        <span>Click Position</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(90deg, #00bcd4, #ff9800);"></div>
+                        <span>Forecast Overlay</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="status-section">
+                <div class="status-item">
+                    <i class="fas fa-circle status-indicator" id="statusIcon"></i>
+                    <span id="status" style="font-size: 1rem;">Loading dashboard...</span>
+                </div>
+                <div class="attribution">
+                    <i class="fas fa-university"></i> WCMG, IIT Roorkee
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Map (75%) -->
+        <div class="right-panel">
+            <div id="map"></div>
+            <div class="map-overlay">
+                <div class="map-tip">
+                    <i class="fas fa-mouse-pointer"></i> Click on map to lock position
+                    <span class="shortcut">Space: Play/Pause</span>
+                    <span class="shortcut">T: Theme</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
