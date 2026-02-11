@@ -11,6 +11,10 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Chart.js for timeseries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0"></script>
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css" />
     
@@ -20,32 +24,313 @@
     <style>
         /* Additional inline styles for font sizes */
         .header-info {
-            font-size: 1rem !important; /* Increased from 0.85rem */
+            font-size: 1rem !important;
         }
         
         .info-item {
-            padding: 8px 15px !important; /* Slightly larger padding */
+            padding: 8px 15px !important;
         }
         
         .time-display {
-            font-size: 1.8rem !important; /* Increased from 1.5rem */
+            font-size: 1.8rem !important;
             padding: 6px 20px !important;
         }
         
         .variable-display {
-            font-size: 1.5rem !important; /* Increased from 1.4rem */
+            font-size: 1.5rem !important;
         }
         
         #variableName {
-            font-size: 1.6rem !important; /* Increased */
+            font-size: 1.6rem !important;
         }
         
         .map-tip {
-            font-size: 1rem !important; /* Increased from 0.85rem */
+            font-size: 1rem !important;
         }
         
         .shortcut {
-            font-size: 0.9rem !important; /* Increased from 0.8rem */
+            font-size: 0.9rem !important;
+        }
+        
+        /* Timeseries chart modal styles */
+        .chart-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .chart-modal-content {
+            background: var(--bg-secondary);
+            margin: 3% auto;
+            padding: 30px;
+            border: 2px solid var(--border-accent);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            animation: slideIn 0.4s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .chart-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-accent);
+        }
+        
+        .chart-modal-title {
+            font-size: 1.8rem;
+            color: var(--text-accent);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .chart-modal-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            font-weight: 400;
+        }
+        
+        .chart-modal-close {
+            color: var(--text-secondary);
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 5px 15px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+        }
+        
+        .chart-modal-close:hover {
+            color: var(--accent-color);
+            background: var(--accent-color);
+            color: white;
+            transform: rotate(90deg);
+        }
+        
+        .chart-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, var(--bg-tertiary), rgba(99, 179, 237, 0.1));
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid var(--border-accent);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-label {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            color: var(--text-accent);
+            font-weight: 800;
+        }
+        
+        .stat-subvalue {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 450px;
+            margin: 25px 0;
+            position: relative;
+            background: var(--bg-tertiary);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .chart-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-accent);
+        }
+        
+        .chart-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .chart-btn {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-color-dark));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(99, 179, 237, 0.3);
+        }
+        
+        .chart-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(99, 179, 237, 0.4);
+        }
+        
+        .chart-btn.download {
+            background: linear-gradient(135deg, #38a169, #2f855a);
+            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.3);
+        }
+        
+        .chart-btn.download:hover {
+            box-shadow: 0 8px 25px rgba(56, 161, 105, 0.4);
+        }
+        
+        .chart-btn.export {
+            background: linear-gradient(135deg, #9f7aea, #805ad5);
+            box-shadow: 0 4px 15px rgba(159, 122, 234, 0.3);
+        }
+        
+        .chart-btn.export:hover {
+            box-shadow: 0 8px 25px rgba(159, 122, 234, 0.4);
+        }
+        
+        .chart-btn.close {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+        }
+        
+        .chart-btn.close:hover {
+            box-shadow: 0 8px 25px rgba(245, 101, 101, 0.4);
+        }
+        
+        .chart-tip {
+            background: linear-gradient(135deg, var(--bg-tertiary), rgba(99, 179, 237, 0.1));
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 32, 44, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            border-radius: 15px;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            width: 60%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), var(--accent-color-light));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+        
+        /* Scrollbar styling for modal */
+        .chart-modal-content::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .chart-modal-content::-webkit-scrollbar-track {
+            background: var(--scrollbar-bg);
+            border-radius: 5px;
+        }
+        
+        .chart-modal-content::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 5px;
+        }
+        
+        .chart-modal-content::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, var(--accent-color-light), var(--accent-color));
         }
     </style>
 </head>
@@ -54,7 +339,7 @@
     <header class="main-header">
         <div class="header-left">
             <h1><i class="fas fa-cloud-sun"></i> WRF Forecast Dashboard</h1>
-            <p class="subtitle">Uttarakhand Region • High-resolution Weather Research and Forecasting Model Visualization</p>
+            <p class="subtitle">Uttarakhand Region • High-Resolution Weather Modeling</p>
         </div>
         <div class="header-right">
             <div class="header-info">
@@ -68,7 +353,7 @@
                 </div>
                 <div class="info-item">
                     <i class="fas fa-hourglass-half"></i>
-                    <span>FH: <span id="currentFH">0</span>/239</span>
+                    <span>FH: <span id="currentFH">0</span>/<span id="totalFH">239</span></span>
                 </div>
                 <!-- Add timezone indicator -->
                 <div class="info-item" style="background: rgba(56, 161, 105, 0.2); border-color: rgba(56, 161, 105, 0.4);">
@@ -200,10 +485,10 @@
             <div class="status-section">
                 <div class="status-item">
                     <i class="fas fa-circle status-indicator" id="statusIcon"></i>
-                    <span id="status" style="font-size: 1rem;">Loading dashboard...</span>
+                    <span id="status" style="font-size: 1rem;">Click on map to view timeseries</span>
                 </div>
                 <div class="attribution">
-                    <i class="fas fa-university"></i> Weather & Climate Research Group, IIT Roorkee
+                    <i class="fas fa-university"></i> Weather and Climate Research Group, IIT Roorkee
                 </div>
             </div>
         </div>
@@ -213,7 +498,7 @@
             <div id="map"></div>
             <div class="map-overlay">
                 <div class="map-tip">
-                    <i class="fas fa-mouse-pointer"></i> Click on map to lock position
+                    <i class="fas fa-mouse-pointer"></i> Click on map to view timeseries
                     <span class="shortcut">Space: Play/Pause</span>
                     <span class="shortcut">T: Theme</span>
                 </div>
@@ -221,12 +506,63 @@
         </div>
     </main>
 
+    <!-- Timeseries Chart Modal -->
+    <div id="chartModal" class="chart-modal">
+        <div class="chart-modal-content">
+            <div class="chart-modal-header">
+                <div>
+                    <div class="chart-modal-title">
+                        <i class="fas fa-chart-line"></i>
+                        <span id="chartTitle">Timeseries Analysis</span>
+                    </div>
+                    <div class="chart-modal-subtitle" id="chartSubtitle">
+                        Loading data...
+                    </div>
+                </div>
+                <span class="chart-modal-close">&times;</span>
+            </div>
+            
+            <div class="chart-stats" id="chartStats">
+                <!-- Statistics will be populated here -->
+            </div>
+            
+            <div class="chart-container">
+                <div id="chartLoading" class="loading-overlay" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text" id="loadingText">Loading timeseries data...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+                <canvas id="timeseriesChart"></canvas>
+            </div>
+            
+            <div class="chart-tip">
+                <i class="fas fa-info-circle"></i> Scroll to zoom • Drag to pan • Double-click to reset • Hover for values
+            </div>
+            
+            <div class="chart-controls">
+                <div class="chart-buttons">
+                    <button id="downloadCSVBtn" class="chart-btn download">
+                        <i class="fas fa-file-csv"></i> Download CSV
+                    </button>
+                    <button id="exportChartBtn" class="chart-btn export">
+                        <i class="fas fa-image"></i> Export Chart
+                    </button>
+                </div>
+                <div class="chart-buttons">
+                    <button id="closeChartBtn" class="chart-btn close">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- Custom JavaScript -->
     <script src="script.js"></script>
 </body>
-
 </html>
-
