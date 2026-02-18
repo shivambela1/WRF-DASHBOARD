@@ -1,0 +1,15 @@
+{
+  "variable": "T2",
+  "colorbar_min": -19.0,
+  "colorbar_max": 33.0,
+  "unit": "\u00b0C",
+  "percentiles_used": "2-98%",
+  "actual_data_min": -30.1986083984375,
+  "actual_data_max": 36.5872802734375,
+  "colorbar_size": {
+    "width_inches": 24,
+    "height_inches": 2,
+    "tick_fontsize": 16,
+    "title_fontsize": 18
+  }
+}

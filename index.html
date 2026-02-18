@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WRF Forecast Dashboard - Uttarakhand</title>
+    
+    <!-- Google Fonts - Beautiful Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0"></script>
+    
+    <!-- Leaflet Geocoder -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌤️</text></svg>">
+    
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* CSS Variables for Themes (identical to original) */
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: rgba(255, 255, 255, 0.85);
+            --bg-tertiary: rgba(241, 245, 249, 0.7);
+            --text-primary: #0f172a;
+            --text-secondary: #1e293b;
+            --text-accent: #0c4a6e;
+            --accent-color: #0284c7;
+            --accent-color-light: #38bdf8;
+            --accent-color-dark: #0369a1;
+            --border-color: rgba(148, 163, 184, 0.3);
+            --border-accent: rgba(2, 132, 199, 0.2);
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --error-color: #dc2626;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --button-bg: linear-gradient(135deg, #e2e8f0, #cbd5e0);
+            --play-button-bg: linear-gradient(135deg, #059669, #047857);
+            --slider-bg: linear-gradient(90deg, #94a3b8, #0284c7);
+            --scrollbar-bg: rgba(203, 213, 224, 0.5);
+            --scrollbar-thumb: linear-gradient(135deg, #94a3b8, #64748b);
+            --map-border: rgba(2, 132, 199, 0.3);
+            --lat-color: #0284c7;
+            --lon-color: #7e22ce;
+            --value-color: #b45309;
+            --grid-color: #059669;
+            --theme-toggle-bg: rgba(255, 255, 255, 0.5);
+            --theme-toggle-icon: #334155;
+            --theme-toggle-border: rgba(100, 116, 139, 0.2);
+            
+            --font-primary: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-secondary: 'Poppins', 'Roboto', sans-serif;
+            --font-mono: 'Space Grotesk', 'Courier New', monospace;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0b1120;
+            --bg-secondary: rgba(15, 23, 42, 0.85);
+            --bg-tertiary: rgba(30, 41, 59, 0.7);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-accent: #f8fafc;
+            --accent-color: #38bdf8;
+            --accent-color-light: #7dd3fc;
+            --accent-color-dark: #0284c7;
+            --border-color: rgba(51, 65, 85, 0.4);
+            --border-accent: rgba(56, 189, 248, 0.2);
+            --success-color: #4ade80;
+            --warning-color: #fbbf24;
+            --error-color: #f87171;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --button-bg: linear-gradient(135deg, #1e293b, #0f172a);
+            --play-button-bg: linear-gradient(135deg, #059669, #047857);
+            --slider-bg: linear-gradient(90deg, #334155, #38bdf8);
+            --scrollbar-bg: rgba(26, 32, 44, 0.3);
+            --scrollbar-thumb: linear-gradient(135deg, #334155, #1e293b);
+            --map-border: rgba(56, 189, 248, 0.2);
+            --lat-color: #7dd3fc;
+            --lon-color: #c4b5fd;
+            --value-color: #fdba74;
+            --grid-color: #86efac;
+            --theme-toggle-bg: rgba(15, 23, 42, 0.5);
+            --theme-toggle-icon: #fcd34d;
+            --theme-toggle-border: rgba(56, 189, 248, 0.2);
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            bottom: 15px;
+            right: 20px;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            z-index: 999;
+            pointer-events: none;
+            font-weight: 600;
+            letter-spacing: 1px;
+            font-family: var(--font-mono);
+            opacity: 0.6;
+            background: var(--bg-tertiary);
+            padding: 5px 12px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Top Header - unchanged */
+        .main-header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            backdrop-filter: blur(12px);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-accent);
+            box-shadow: 0 4px 20px var(--shadow-color);
+            height: 8vh;
+            min-height: 80px;
+            max-height: 90px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .header-left h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-secondary);
+        }
+
+        .header-left h1 i {
+            color: var(--accent-color);
+            font-size: 2.1rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            font-family: var(--font-primary);
+        }
+
+        #currentDateTime {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 20px;
+            font-size: 0.95rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            font-weight: 600;
+            backdrop-filter: blur(4px);
+        }
+
+        .info-item i {
+            color: var(--success-color);
+            font-size: 1rem;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--theme-toggle-bg);
+            border: 1px solid var(--theme-toggle-border);
+            color: var(--theme-toggle-icon);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(15deg);
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        /* ********** NEW LAYOUT: 70% Right / 30% Left ********** */
+        /* Main container that holds both panels side by side */
+        .main-layout {
+            position: fixed;
+            top: 90px;               /* below header */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+
+        /* Left column: 30% width, contains left-panel content (scrollable) */
+        .left-column {
+            width: 30%;
+            min-width: 300px;
+            background: transparent;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 15px 10px 15px 15px;
+            z-index: 200;
+            pointer-events: none;      /* allow clicks through to map, but children receive events */
+        }
+        .left-column > * {
+            pointer-events: auto;
+        }
+
+        /* Right column: 70% width, contains colorbar and map */
+        .right-column {
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+            background: transparent;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Colorbar section now inside right column */
+        .colorbar-section {
+            height: 22vh;
+            min-height: 200px;
+            max-height: 220px;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-accent);
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            backdrop-filter: blur(10px);
+            width: 100%;
+        }
+
+        .colorbar-container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .colorbar-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .variable-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+        }
+
+        #variableIcon {
+            color: var(--accent-color);
+            font-size: 1.6rem;
+        }
+
+        #variableName {
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .time-display {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            background: var(--bg-tertiary);
+            padding: 4px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--border-accent);
+            font-family: var(--font-mono);
+        }
+
+        .colorbar-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--button-bg);
+            border: 1px solid var(--border-accent);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-color-dark));
+            color: white;
+        }
+
+        #timeSlider {
+            width: 250px;
+            height: 8px;
+            -webkit-appearance: none;
+            background: var(--slider-bg);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        #timeSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px var(--shadow-color);
+        }
+
+        .play-btn {
+            background: var(--play-button-bg);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            min-width: 100px;
+        }
+
+        .colorbar-image-container {
+            width: 100%;
+            height: 70px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .colorbar-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        /* Map container fills remaining space in right column */
+        .map-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            background: #ccc;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Left Panel: all original control sections stacked */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .control-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 18px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .control-section h3 {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-secondary);
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .styled-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: var(--font-primary);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Data Display */
+        .data-display {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .data-item {
+            background: var(--bg-tertiary);
+            backdrop-filter: blur(5px);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .data-label {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-family: var(--font-secondary);
+        }
+
+        .data-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-all;
+            font-family: var(--font-mono);
+        }
+
+        #lat, #lon {
+            display: block;
+            margin: 4px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        #lat { color: var(--lat-color); }
+        #lon { color: var(--lon-color); }
+        #varValue { font-size: 1.8rem; color: var(--value-color); font-weight: 800; }
+        #gridInfo { color: var(--grid-color); font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600; }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .legend-color { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border-color); }
+
+        /* Status Section */
+        .status-section {
+            margin-top: auto;
+            background: var(--bg-tertiary);
+            backdrop-filter: blur(5px);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .status-indicator { color: var(--success-color); font-size: 0.8rem; }
+        #status { font-size: 1.1rem; color: var(--text-primary); flex: 1; font-weight: 600; }
+        .attribution {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: var(--font-secondary);
+            font-weight: 500;
+        }
+
+        /* Location Search */
+        .location-search {
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .search-container {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: var(--font-primary);
+            backdrop-filter: blur(5px);
+            font-weight: 500;
+        }
+        .search-btn {
+            padding: 12px 18px;
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-color-dark));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        .geo-btn {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            backdrop-filter: blur(5px);
+        }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+        .search-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .search-result-item:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* Current Conditions Card (now at top left) */
+        .current-conditions {
+            margin-top: 0;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-color-dark));
+            border-radius: 16px;
+            padding: 15px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .conditions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+        .conditions-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-secondary);
+        }
+        .conditions-time { font-size: 0.9rem; opacity: 0.9; font-weight: 500; }
+        .conditions-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        .condition-item { text-align: center; }
+        .condition-icon { font-size: 1.2rem; margin-bottom: 4px; opacity: 0.9; }
+        .condition-value { font-weight: 700; font-size: 1.1rem; font-family: var(--font-mono); }
+        .condition-label { font-size: 0.8rem; opacity: 0.8; font-weight: 600; }
+
+        /* 24-Hour Forecast */
+        .forecast-24h {
+            margin-top: 15px;
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 12px;
+        }
+        .forecast-header {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .forecast-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .forecast-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 6px;
+            padding-bottom: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.5) rgba(255,255,255,0.1);
+        }
+        .forecast-item {
+            min-width: 65px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 0.8rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(2px);
+            font-weight: 500;
+        }
+        .forecast-item.current-hour { background: rgba(255,255,255,0.25); border: 1px solid white; font-weight: 700; }
+        .forecast-time { font-weight: 600; margin-bottom: 3px; }
+        .forecast-temp { font-size: 0.95rem; font-weight: 700; font-family: var(--font-mono); }
+        .forecast-loading { display: flex; align-items: center; gap: 8px; padding: 12px; justify-content: center; color: var(--text-primary); }
+
+        .loading-spinner-small {
+            width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            z-index: 500;
+            pointer-events: none;
+        }
+        .map-tip {
+            background: var(--bg-tertiary);
+            backdrop-filter: blur(12px);
+            color: var(--text-primary);
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-accent);
+            box-shadow: 0 4px 12px var(--shadow-color);
+            font-family: var(--font-primary);
+            pointer-events: auto;
+            font-weight: 500;
+        }
+        .shortcut {
+            background: var(--bg-tertiary);
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border-accent);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+
+        .location-badge {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-secondary);
+            backdrop-filter: blur(12px);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 1rem;
+            border: 1px solid var(--border-accent);
+            z-index: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        /* Chart Modal (unchanged) */
+        .chart-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+        }
+        .chart-modal-content {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px);
+            margin: 3% auto;
+            padding: 30px;
+            border: 2px solid var(--border-accent);
+            border-radius: 24px;
+            width: 90%;
+            max-width: 1300px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px var(--shadow-color);
+            animation: slideIn 0.4s ease;
+            position: relative;
+        }
+        .chart-watermark {
+            position: absolute; bottom: 30px; right: 30px; font-size: 1rem; color: var(--text-secondary); z-index: 1000; pointer-events: none; font-weight: 600; font-family: var(--font-mono); opacity: 0.5; background: var(--bg-tertiary); padding: 4px 12px; border-radius: 30px; backdrop-filter: blur(2px); border: 1px solid var(--border-color);
+        }
+        .chart-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-accent); }
+        .chart-modal-title { font-size: 1.6rem; color: var(--text-primary); font-weight: 800; display: flex; align-items: center; gap: 12px; font-family: var(--font-secondary); }
+        .chart-modal-subtitle { font-size: 1rem; color: var(--text-secondary); margin-top: 5px; font-weight: 600; }
+        .chart-modal-close { color: var(--text-secondary); font-size: 2rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; padding: 5px 12px; border-radius: 50%; background: var(--bg-tertiary); }
+        .chart-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-item { background: linear-gradient(135deg, var(--bg-tertiary), rgba(2, 132, 199, 0.1)); padding: 15px; border-radius: 12px; border: 1px solid var(--border-accent); }
+        .stat-label { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600; }
+        .stat-value { font-size: 1.4rem; color: var(--text-primary); font-weight: 800; font-family: var(--font-mono); }
+        .stat-subvalue { font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px; }
+        .chart-container { width: 100%; height: 450px; margin: 20px 0; position: relative; background: var(--bg-tertiary); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
+        .chart-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 2px solid var(--border-accent); }
+        .chart-buttons { display: flex; gap: 10px; }
+        .chart-btn { background: linear-gradient(135deg, var(--accent-color), var(--accent-color-dark)); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; font-size: 0.9rem; }
+        .chart-btn.download { background: linear-gradient(135deg, #059669, #047857); }
+        .chart-btn.export { background: linear-gradient(135deg, #7e22ce, #6b21a8); }
+        .chart-btn.close { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        .chart-tip { background: linear-gradient(135deg, var(--bg-tertiary), rgba(2, 132, 199, 0.1)); padding: 12px 16px; border-radius: 10px; margin-top: 15px; font-size: 0.9rem; color: var(--text-primary); border: 1px solid var(--border-accent); display: flex; align-items: center; gap: 8px; font-weight: 500; }
+
+        .loading-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:var(--bg-secondary); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:100; border-radius:12px; }
+        .loading-spinner { width:50px; height:50px; border:4px solid var(--border-color); border-top:4px solid var(--accent-color); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:15px; }
+        .loading-text { color:var(--text-primary); font-size:1.1rem; font-weight:600; }
+        .progress-bar { width:60%; height:6px; background:var(--border-color); border-radius:3px; margin-top:15px; overflow:hidden; }
+        .progress-fill { height:100%; background:linear-gradient(90deg, var(--accent-color), var(--accent-color-light)); width:0%; transition:width 0.3s ease; border-radius:3px; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes valuePulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        .value-update { animation: valuePulse 0.6s ease; }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-bg); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="watermark">🌤️ weatherxplorers.com</div>
+
+    <!-- Top Header (unchanged) -->
+    <header class="main-header">
+        <div class="header-left">
+            <h1><i class="fas fa-cloud-sun"></i> WRF Forecast</h1>
+            <p class="subtitle">Uttarakhand • <span id="currentDateTime"></span></p>
+        </div>
+        <div class="header-right">
+            <div class="header-info">
+                <div class="info-item"><i class="far fa-calendar-alt"></i><span id="fcStart">Loading...</span></div>
+                <div class="info-item"><i class="far fa-clock"></i><span id="fcValid">Loading...</span></div>
+                <div class="info-item"><i class="fas fa-hourglass-half"></i><span>FH: <span id="currentFH">0</span>/<span id="totalFH">311</span></span></div>
+                <div class="info-item"><i class="fas fa-globe-asia"></i><span>IST</span></div>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode"><i class="fas fa-moon"></i></button>
+        </div>
+    </header>
+
+    <!-- New Layout: Left 30% / Right 70% -->
+    <div class="main-layout">
+        <!-- LEFT COLUMN: Contains all original left panel controls, now scrollable -->
+        <div class="left-column">
+            <div class="left-panel">
+                <!-- Location Search & Current Conditions moved to top -->
+                <div class="control-section">
+                    <h3><i class="fas fa-search-location"></i> Location</h3>
+                    <div class="location-search">
+                        <div class="search-container">
+                            <input type="text" id="searchInput" class="search-input" placeholder="Search for a place..." autocomplete="off">
+                            <button id="searchBtn" class="search-btn"><i class="fas fa-search"></i></button>
+                            <button id="geoBtn" class="geo-btn" title="Use my location"><i class="fas fa-location-dot"></i></button>
+                        </div>
+                        <div id="searchResults" class="search-results"></div>
+                    </div>
+                    <!-- Current Conditions Card -->
+                    <div id="currentConditions" class="current-conditions" style="display: none;">
+                        <div class="conditions-header">
+                            <div class="conditions-title"><i class="fas fa-map-pin"></i><span id="currentLocation">Current Location</span></div>
+                            <div class="conditions-time" id="conditionsTime">Just now</div>
+                        </div>
+                        <div class="conditions-grid">
+                            <div class="condition-item"><div class="condition-icon"><i class="fas fa-thermometer-half"></i></div><div class="condition-value" id="currentTemp">--°C</div><div class="condition-label">Temperature</div></div>
+                            <div class="condition-item"><div class="condition-icon"><i class="fas fa-tint"></i></div><div class="condition-value" id="currentHumidity">--%</div><div class="condition-label">Humidity</div></div>
+                            <div class="condition-item"><div class="condition-icon"><i class="fas fa-wind"></i></div><div class="condition-value" id="currentWind">-- m/s</div><div class="condition-label">Wind</div></div>
+                            <div class="condition-item"><div class="condition-icon"><i class="fas fa-cloud-rain"></i></div><div class="condition-value" id="currentRain">-- mm</div><div class="condition-label">Rain</div></div>
+                        </div>
+                        <div class="forecast-24h">
+                            <div class="forecast-header"><i class="fas fa-clock"></i> Next 24 Hours <span class="forecast-badge">Hourly</span></div>
+                            <div class="forecast-scroll" id="hourlyForecast"><div class="forecast-loading"><div class="loading-spinner-small"></div><span>Loading hourly forecast...</span></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Variable Selection -->
+                <div class="control-section">
+                    <h3><i class="fas fa-sliders-h"></i> Controls</h3>
+                    <div class="control-group"><label for="varSelect"><i class="fas fa-chart-line"></i> Variable</label><select id="varSelect" class="styled-select"><option value="T2">2m Temperature (°C)</option><option value="RH">Relative Humidity (%)</option><option value="WIND">Wind Speed (m/s)</option><option value="RAIN">Hourly Rainfall (mm)</option></select></div>
+                    <div class="control-group"><label for="speedSelect"><i class="fas fa-tachometer-alt"></i> Animation Speed</label><select id="speedSelect" class="styled-select"><option value="0.25">0.25× Slow</option><option value="0.5">0.5× Moderate</option><option value="1" selected>1× Normal</option><option value="2">2× Fast</option><option value="3">3× Very Fast</option></select></div>
+                </div>
+
+                <!-- Data Display -->
+                <div class="control-section">
+                    <h3><i class="fas fa-map-marker-alt"></i> Location Data</h3>
+                    <div class="data-display">
+                        <div class="data-item"><div class="data-label"><i class="fas fa-globe-asia"></i> Coordinates</div><div class="data-value"><span id="lat">Lat: --</span><br><span id="lon">Lon: --</span></div></div>
+                        <div class="data-item"><div class="data-label"><i class="fas fa-chart-bar"></i> Value at Cursor</div><div class="data-value" id="varValue" style="font-size:1.8rem;">--</div></div>
+                        <div class="data-item"><div class="data-label"><i class="fas fa-th"></i> Grid</div><div class="data-value" id="gridInfo" style="font-size:1.2rem;">--</div></div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="control-section">
+                    <h3><i class="fas fa-info-circle"></i> Legend</h3>
+                    <div class="legend">
+                        <div class="legend-item"><div class="legend-color" style="background:#FF4444; opacity:0.5;"></div><span>WRF Domain</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background:#0284c7;"></div><span>Click Position</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background:linear-gradient(90deg, #06b6d4, #f97316);"></div><span>Forecast Overlay</span></div>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="status-section">
+                    <div class="status-item"><i class="fas fa-circle status-indicator" id="statusIcon"></i><span id="status" style="font-size:1.1rem;">Click on map to view timeseries</span></div>
+                    <div class="attribution"><i class="fas fa-university"></i> <a href="http://www.weatherxplorers.com" target="_blank" rel="noopener noreferrer">Weather and Climate Research Group, IIT Roorkee</a></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Colorbar + Map -->
+        <div class="right-column">
+            <div class="colorbar-section">
+                <div class="colorbar-container">
+                    <div class="colorbar-header">
+                        <div class="variable-display">
+                            <i class="fas fa-chart-line" id="variableIcon"></i>
+                            <span id="variableName">2m Temperature</span>
+                            <span id="timeLabel" class="time-display">+0 h</span>
+                        </div>
+                        <div class="colorbar-controls">
+                            <button id="prevBtn" class="nav-btn" title="Previous hour"><i class="fas fa-chevron-left"></i></button>
+                            <input type="range" id="timeSlider" min="0" max="311" step="1" value="0">
+                            <button id="nextBtn" class="nav-btn" title="Next hour"><i class="fas fa-chevron-right"></i></button>
+                            <button id="playBtn" class="play-btn"><i class="fas fa-play"></i> Play</button>
+                        </div>
+                    </div>
+                    <div class="colorbar-image-container">
+                        <img id="cbar" alt="Color bar" class="colorbar-image">
+                    </div>
+                </div>
+            </div>
+            <!-- Map container -->
+            <div class="map-container">
+                <div id="map"></div>
+                <div id="locationBadge" class="location-badge" style="display: none;"><i class="fas fa-location-dot"></i><span id="badgeLocation">Current Location</span></div>
+                <div class="map-overlay">
+                    <div class="map-tip"><i class="fas fa-mouse-pointer"></i> Click on map to view timeseries <span class="shortcut">Space: Play/Pause</span><span class="shortcut">T: Theme</span><span class="shortcut">G: My Location</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Modal (unchanged) -->
+    <div id="chartModal" class="chart-modal"> <!-- full content omitted for brevity, identical to original -->
+        <div class="chart-modal-content">
+            <div class="chart-watermark">🌤️ weatherxplorers.com</div>
+            <div class="chart-modal-header">
+                <div><div class="chart-modal-title"><i class="fas fa-chart-line"></i><span id="chartTitle">Timeseries Analysis</span></div><div class="chart-modal-subtitle" id="chartSubtitle">Loading data...</div></div>
+                <span class="chart-modal-close">&times;</span>
+            </div>
+            <div class="chart-stats" id="chartStats"></div>
+            <div class="chart-container">
+                <div id="chartLoading" class="loading-overlay" style="display: none;"><div class="loading-spinner"></div><div class="loading-text" id="loadingText">Loading timeseries data...</div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div></div>
+                <canvas id="timeseriesChart"></canvas>
+            </div>
+            <div class="chart-tip"><i class="fas fa-info-circle"></i> Scroll to zoom • Drag to pan • Double-click to reset • Hover for values</div>
+            <div class="chart-controls">
+                <div class="chart-buttons"><button id="downloadCSVBtn" class="chart-btn download"><i class="fas fa-file-csv"></i> Download CSV</button><button id="exportChartBtn" class="chart-btn export"><i class="fas fa-image"></i> Export Chart</button></div>
+                <div class="chart-buttons"><button id="closeChartBtn" class="chart-btn close"><i class="fas fa-times"></i> Close</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS and scripts (identical to original, omitted for brevity but included in final answer) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+
+        // ==================== CONFIGURATION ====================
+        const CONFIG = {
+            forecastStart: new Date("2026-02-18T05:30:00+05:30"),
+            baseFrameTime: 1000,
+            debugMode: true,
+            wrfBounds: [[28.3241, 77.3086], [31.7777, 81.2995]],
+            mapViewBounds: [[27.0, 76.0], [32.5, 82.5]],
+            variables: {
+                T2: { name: "2m Temperature", unit: "°C", precision: 1, icon: "fa-thermometer-half" },
+                RH: { name: "Relative Humidity", unit: "%", precision: 0, icon: "fa-tint" },
+                WIND: { name: "Wind Speed", unit: "m/s", precision: 1, icon: "fa-wind" },
+                RAIN: { name: "Hourly Rainfall", unit: "mm", precision: 2, icon: "fa-cloud-rain" }
+            },
+            defaultLocation: { lat: 29.5, lon: 79.5, name: "Uttarakhand" }
+        };
+
+        // ==================== APPLICATION STATE ====================
+        const state = {
+            currentLayer: null,
+            currentGrid: null,
+            currentFH: 0,
+            allGrids: {},
+            allTimeseriesData: {},
+            totalForecastHours: 311,
+            isPlaying: false,
+            timer: null,
+            currentSpeed: 1.0,
+            isDataLoaded: false,
+            lastClickPos: null,
+            map: null,
+            baseLayer: null,
+            markers: { clickMarker: null, boundaryLayer: null, locationMarker: null },
+            currentTheme: 'light',
+            timeseriesData: { lat: null, lon: null, gridI: null, gridJ: null, variable: null, values: [], hours: [], timestamps: [] },
+            chartInstance: null,
+            isLoadingTimeseries: false,
+            currentLocation: null,
+            locationName: null,
+            searchTimeout: null,
+            hourlyForecastData: {},
+            defaultLocationPreloaded: false
+        };
+
+        // ==================== UI ELEMENTS ====================
+        const elements = {
+            slider: document.getElementById("timeSlider"),
+            timeLabel: document.getElementById("timeLabel"),
+            varSelect: document.getElementById("varSelect"),
+            playBtn: document.getElementById("playBtn"),
+            speedSelect: document.getElementById("speedSelect"),
+            nextBtn: document.getElementById("nextBtn"),
+            prevBtn: document.getElementById("prevBtn"),
+            fcStart: document.getElementById("fcStart"),
+            fcValid: document.getElementById("fcValid"),
+            currentFH: document.getElementById("currentFH"),
+            totalFH: document.getElementById("totalFH"),
+            variableName: document.getElementById("variableName"),
+            variableIcon: document.getElementById("variableIcon"),
+            cbar: document.getElementById("cbar"),
+            lat: document.getElementById("lat"),
+            lon: document.getElementById("lon"),
+            varValue: document.getElementById("varValue"),
+            gridInfo: document.getElementById("gridInfo"),
+            status: document.getElementById("status"),
+            statusIcon: document.getElementById("statusIcon"),
+            themeToggle: document.getElementById("themeToggle"),
+            chartModal: document.getElementById("chartModal"),
+            chartTitle: document.getElementById("chartTitle"),
+            chartSubtitle: document.getElementById("chartSubtitle"),
+            chartStats: document.getElementById("chartStats"),
+            timeseriesChart: document.getElementById("timeseriesChart"),
+            downloadCSVBtn: document.getElementById("downloadCSVBtn"),
+            exportChartBtn: document.getElementById("exportChartBtn"),
+            closeChartBtn: document.getElementById("closeChartBtn"),
+            chartModalClose: document.querySelector('.chart-modal-close'),
+            chartLoading: document.getElementById("chartLoading"),
+            loadingText: document.getElementById("loadingText"),
+            progressFill: document.getElementById("progressFill"),
+            searchInput: document.getElementById("searchInput"),
+            searchBtn: document.getElementById("searchBtn"),
+            geoBtn: document.getElementById("geoBtn"),
+            searchResults: document.getElementById("searchResults"),
+            currentConditions: document.getElementById("currentConditions"),
+            currentLocation: document.getElementById("currentLocation"),
+            conditionsTime: document.getElementById("conditionsTime"),
+            currentTemp: document.getElementById("currentTemp"),
+            currentHumidity: document.getElementById("currentHumidity"),
+            currentWind: document.getElementById("currentWind"),
+            currentRain: document.getElementById("currentRain"),
+            locationBadge: document.getElementById("locationBadge"),
+            badgeLocation: document.getElementById("badgeLocation"),
+            hourlyForecast: document.getElementById("hourlyForecast"),
+            currentDateTime: document.getElementById("currentDateTime")
+        };
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function debug(message, data = null) {
+            if (CONFIG.debugMode) console.log(`🔍 ${message}`, data || '');
+        }
+
+        function updateStatus(message, type = 'info') {
+            const colors = { error: '#dc2626', warn: '#d97706', info: '#0284c7', success: '#059669' };
+            const icon = colors[type] || colors.info;
+            elements.status.textContent = message;
+            elements.statusIcon.style.color = icon;
+        }
+
+        function formatISTTime(date) {
+            return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '') + ' IST';
+        }
+
+        function formatHourlyTime(date) {
+            return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: true }).toUpperCase();
+        }
+
+        function updateCurrentDateTime() {
+            const now = new Date();
+            elements.currentDateTime.textContent = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase() + ' IST';
+            setTimeout(updateCurrentDateTime, 60000);
+        }
+
+        // ==================== THEME ====================
+        function setupThemeToggle() {
+            const savedTheme = localStorage.getItem('wrfTheme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            state.currentTheme = savedTheme;
+            updateThemeIcon(savedTheme);
+            initializeBasemap(savedTheme);
+            elements.themeToggle.addEventListener('click', () => {
+                const currentTheme = document.body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.body.setAttribute('data-theme', newTheme);
+                localStorage.setItem('wrfTheme', newTheme);
+                state.currentTheme = newTheme;
+                updateThemeIcon(newTheme);
+                updateBaseMapTheme(newTheme);
+                if (state.chartInstance) updateChartTheme();
+            });
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = elements.themeToggle.querySelector('i');
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            icon.title = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+        }
+
+        function initializeBasemap(theme) {
+            if (!state.map) return;
+            if (state.baseLayer) state.map.removeLayer(state.baseLayer);
+            let tileLayerUrl = theme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            let tileAttribution = '© OpenStreetMap, © CartoDB';
+            state.baseLayer = L.tileLayer(tileLayerUrl, { maxZoom: 12, attribution: tileAttribution, detectRetina: false, updateWhenIdle: true, keepBuffer: 2 }).addTo(state.map);
+        }
+
+        function updateBaseMapTheme(theme) { initializeBasemap(theme); }
+
+        // ==================== MAP ====================
+        function initializeMap() {
+            state.map = L.map('map', { attributionControl: false, zoomControl: true, minZoom: 6, maxZoom: 12, maxBounds: CONFIG.mapViewBounds, zoomControl: false, preferCanvas: true, fadeAnimation: false, markerZoomAnimation: false });
+            L.control.zoom({ position: 'bottomright' }).addTo(state.map);
+            state.map.setView([29.5, 79.5], 7);
+            state.markers.boundaryLayer = L.rectangle(CONFIG.wrfBounds, { color: '#FF4444', weight: 1, fillColor: '#FF4444', fillOpacity: 0.05, interactive: true, dashArray: '5, 5' }).addTo(state.map);
+        }
+
+        function isInWRFDomain(lat, lon) {
+            const [sw, ne] = CONFIG.wrfBounds;
+            return lat >= sw[0] && lat <= ne[0] && lon >= sw[1] && lon <= ne[1];
+        }
+
+        // ==================== GRID & DATA ====================
+        function latLonToGridIndex(lat, lon) {
+            if (!state.currentGrid) return null;
+            if (!isInWRFDomain(lat, lon)) return null;
+            const grid = state.currentGrid;
+            const latNorm = (lat - grid.lat_min) / (grid.lat_max - grid.lat_min);
+            const lonNorm = (lon - grid.lon_min) / (grid.lon_max - grid.lon_min);
+            const array_i = Math.floor(latNorm * (grid.ny - 1));
+            const array_j = Math.floor(lonNorm * (grid.nx - 1));
+            return { i: Math.max(0, Math.min(array_i, grid.ny - 1)), j: Math.max(0, Math.min(array_j, grid.nx - 1)) };
+        }
+
+        function getValueAtCoordinates(lat, lon) {
+            if (!state.currentGrid || !state.currentGrid.values) return { value: null, gridIndex: null };
+            if (!isInWRFDomain(lat, lon)) return { value: null, gridIndex: null, message: 'Outside domain' };
+            const gridIndex = latLonToGridIndex(lat, lon);
+            if (!gridIndex) return { value: null, gridIndex: null };
+            if (gridIndex.i >= state.currentGrid.values.length || gridIndex.j >= state.currentGrid.values[0].length) return { value: null, gridIndex };
+            const value = state.currentGrid.values[gridIndex.i][gridIndex.j];
+            return (value === null || isNaN(value)) ? { value: null, gridIndex } : { value, gridIndex };
+        }
+
+        async function loadGridData(fh) {
+            const variable = elements.varSelect.value;
+            const cacheKey = `${variable}_${fh}`;
+            if (state.allGrids[cacheKey]) { state.currentGrid = state.allGrids[cacheKey]; return true; }
+            try {
+                updateStatus(`Loading ${CONFIG.variables[variable].name} data...`, 'info');
+                const paddedFH = fh.toString().padStart(3, '0');
+                const response = await fetch(`data_json/${variable}/${variable}_${paddedFH}.json`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const gridData = await response.json();
+                if (!gridData || !gridData.values || !gridData.ny || !gridData.nx) throw new Error('Invalid JSON structure');
+                state.allGrids[cacheKey] = gridData;
+                state.currentGrid = gridData;
+                updateStatus(`Data loaded for FH ${fh}`, 'success');
+                return true;
+            } catch (error) {
+                debug(`Failed to load grid: ${error.message}`, 'error');
+                state.currentGrid = createTestGrid();
+                updateStatus(`Loading data...`, 'warn');
+                return false;
+            }
+        }
+
+        function createTestGrid() {
+            const nx = 129, ny = 129, values = [];
+            for (let i = 0; i < ny; i++) {
+                const row = [];
+                for (let j = 0; j < nx; j++) {
+                    const southToNorth = i / (ny - 1);
+                    const baseTemp = 30 - (southToNorth * 40);
+                    const eastWest = Math.sin((j / (nx - 1)) * Math.PI) * 5;
+                    const noise = (Math.random() - 0.5) * 2;
+                    row.push(parseFloat((baseTemp + eastWest + noise).toFixed(2)));
+                }
+                values.push(row);
+            }
+            return { lat_min: CONFIG.wrfBounds[0][0], lat_max: CONFIG.wrfBounds[1][0], lon_min: CONFIG.wrfBounds[0][1], lon_max: CONFIG.wrfBounds[1][1], nx: nx, ny: ny, values: values };
+        }
+
+        async function updateMapLayer(fh) {
+            const variable = elements.varSelect.value;
+            const paddedFH = fh.toString().padStart(3, '0');
+            const imagePath = `data/${variable}/${variable}_fc_${paddedFH}.png`;
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    if (state.currentLayer) state.map.removeLayer(state.currentLayer);
+                    state.currentLayer = L.imageOverlay(imagePath, CONFIG.wrfBounds, { opacity: 1.0, interactive: false }).addTo(state.map);
+                    resolve(true);
+                };
+                img.onerror = () => {
+                    const altPath = `data/${variable}/${variable}_${paddedFH}.png`;
+                    img.src = altPath;
+                    img.onerror = () => { debug(`Image not found: ${imagePath}`, 'error'); resolve(false); };
+                };
+                img.src = imagePath;
+            });
+        }
+
+        function updateCoordinateDisplay(lat, lon) {
+            elements.lat.innerHTML = `Lat: <strong>${lat.toFixed(4)}°</strong>`;
+            elements.lon.innerHTML = `Lon: <strong>${lon.toFixed(4)}°</strong>`;
+            elements.lat.style.color = isInWRFDomain(lat, lon) ? 'var(--lat-color)' : '#dc2626';
+            elements.lon.style.color = isInWRFDomain(lat, lon) ? 'var(--lon-color)' : '#dc2626';
+        }
+
+        function updateValueDisplay(lat, lon) {
+            const result = getValueAtCoordinates(lat, lon);
+            const variable = elements.varSelect.value;
+            const varConfig = CONFIG.variables[variable];
+            if (result.message === 'Outside domain') {
+                elements.varValue.innerHTML = `<span style="color: var(--error-color); font-size: 1.8rem;">Outside WRF Domain</span>`;
+                elements.gridInfo.textContent = '--';
+                return;
+            }
+            if (result.value === null) {
+                elements.varValue.innerHTML = `<span style="color: var(--warning-color); font-size: 1.8rem;">No data</span>`;
+                elements.gridInfo.innerHTML = result.gridIndex ? `Grid: [<strong>${result.gridIndex.i}, ${result.gridIndex.j}</strong>]` : '--';
+                return;
+            }
+            const formattedValue = result.value.toFixed(varConfig.precision);
+            elements.varValue.innerHTML = `<span class="value-update" style="font-size: 2.2rem; font-weight: 800;">${formattedValue} ${varConfig.unit}</span>`;
+            elements.gridInfo.innerHTML = `Grid: [<strong>${result.gridIndex.i}, ${result.gridIndex.j}</strong>]`;
+        }
+
+        function updateVariableDisplay() {
+            const variable = elements.varSelect.value;
+            const varConfig = CONFIG.variables[variable];
+            elements.variableName.textContent = varConfig.name;
+            elements.variableIcon.className = `fas ${varConfig.icon}`;
+            const cbarPath = `data/${variable}/${variable}_colorbar.png`;
+            elements.cbar.src = cbarPath;
+            elements.cbar.onerror = () => { elements.cbar.style.display = 'none'; };
+            elements.cbar.onload = () => { elements.cbar.style.display = 'block'; };
+        }
+
+        function updateTimeDisplay(fh) {
+            elements.timeLabel.textContent = `+${fh} h`;
+            elements.currentFH.textContent = fh;
+            const forecastStart = CONFIG.forecastStart;
+            const validTime = new Date(forecastStart.getTime() + fh * 3600 * 1000);
+            elements.fcStart.textContent = formatISTTime(forecastStart);
+            elements.fcValid.textContent = formatISTTime(validTime);
+        }
+
+        async function showFrame(fh) {
+            state.currentFH = fh;
+            elements.slider.value = fh;
+            updateTimeDisplay(fh);
+            updateVariableDisplay();
+            await loadGridData(fh);
+            await updateMapLayer(fh);
+            if (state.lastClickPos) {
+                const { lat, lng } = state.lastClickPos;
+                updateCoordinateDisplay(lat, lng);
+                updateValueDisplay(lat, lng);
+            }
+            if (state.currentLocation) updateCurrentConditions(state.currentLocation.lat, state.currentLocation.lon);
+        }
+
+        function toggleAnimation() {
+            state.isPlaying ? stopAnimation() : startAnimation();
+        }
+
+        function stopAnimation() {
+            if (!state.isPlaying) return;
+            state.isPlaying = false;
+            clearInterval(state.timer);
+            state.timer = null;
+            elements.playBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+        }
+
+        function startAnimation() {
+            if (state.isPlaying) return;
+            state.isPlaying = true;
+            elements.playBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            state.timer = setInterval(() => {
+                let nextFH = (state.currentFH < state.totalForecastHours) ? state.currentFH + 1 : 0;
+                showFrame(nextFH);
+            }, CONFIG.baseFrameTime / state.currentSpeed);
+        }
+
+        async function detectTotalForecastHours() {
+            try {
+                if (elements.slider.max > 0) {
+                    state.totalForecastHours = parseInt(elements.slider.max);
+                    elements.totalFH.textContent = state.totalForecastHours;
+                    return state.totalForecastHours;
+                }
+            } catch (e) { /* ignore */ }
+            state.totalForecastHours = 311;
+            elements.slider.max = 311;
+            elements.totalFH.textContent = '311';
+            return 311;
+        }
+
+        // ==================== LOCATION & SEARCH ====================
+        function goToLocation(lat, lon, name, shouldZoom = false) {
+            if (!isInWRFDomain(lat, lon)) {
+                updateStatus('Location outside WRF domain', 'warn');
+                return;
+            }
+            if (shouldZoom) state.map.setView([lat, lon], 7);
+            else state.map.panTo([lat, lon]);
+            if (state.markers.locationMarker) state.map.removeLayer(state.markers.locationMarker);
+            state.markers.locationMarker = L.marker([lat, lon], { icon: L.divIcon({ className: 'location-marker', html: '<div style="background: radial-gradient(circle, #059669 40%, #047857); width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>', iconSize: [24, 24] }) }).addTo(state.map);
+            state.currentLocation = { lat, lon };
+            state.locationName = name;
+            elements.locationBadge.style.display = 'flex';
+            elements.badgeLocation.textContent = name;
+            updateCurrentConditions(lat, lon);
+            loadHourlyForecast(lat, lon);
+        }
+
+        async function getUserLocation() {
+            if (!navigator.geolocation) { updateStatus('Geolocation not supported', 'error'); return; }
+            elements.geoBtn.innerHTML = '<div class="location-loading" style="width:16px;height:16px;border:2px solid #ccc;border-top-color:#0284c7;border-radius:50%;animation:spin 1s linear infinite;"></div>';
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    try {
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                        const data = await response.json();
+                        const name = data.address?.city || data.address?.town || data.address?.village || data.address?.suburb || 'Current Location';
+                        goToLocation(latitude, longitude, name, true);
+                    } catch (error) {
+                        goToLocation(latitude, longitude, 'Current Location', true);
+                    }
+                    elements.geoBtn.innerHTML = '<i class="fas fa-location-dot"></i>';
+                },
+                (error) => {
+                    updateStatus('Could not get location: ' + error.message, 'error');
+                    elements.geoBtn.innerHTML = '<i class="fas fa-location-dot"></i>';
+                }
+            );
+        }
+
+        async function autoDetectLocation() {
+            if (!navigator.geolocation) { goToLocation(CONFIG.defaultLocation.lat, CONFIG.defaultLocation.lon, CONFIG.defaultLocation.name, false); return; }
+            elements.geoBtn.innerHTML = '<div class="location-loading" style="width:16px;height:16px;border:2px solid #ccc;border-top-color:#0284c7;border-radius:50%;animation:spin 1s linear infinite;"></div>';
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    if (isInWRFDomain(latitude, longitude)) {
+                        try {
+                            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                            const data = await response.json();
+                            const name = data.address?.city || data.address?.town || data.address?.village || data.address?.suburb || 'Your Location';
+                            goToLocation(latitude, longitude, name, false);
+                        } catch (error) {
+                            goToLocation(latitude, longitude, 'Your Location', false);
+                        }
+                    } else {
+                        goToLocation(CONFIG.defaultLocation.lat, CONFIG.defaultLocation.lon, CONFIG.defaultLocation.name, false);
+                    }
+                    elements.geoBtn.innerHTML = '<i class="fas fa-location-dot"></i>';
+                },
+                (error) => {
+                    goToLocation(CONFIG.defaultLocation.lat, CONFIG.defaultLocation.lon, CONFIG.defaultLocation.name, false);
+                    elements.geoBtn.innerHTML = '<i class="fas fa-location-dot"></i>';
+                }
+            );
+        }
+
+        // ==================== CURRENT CONDITIONS & HOURLY FORECAST ====================
+        async function updateCurrentConditions(lat, lon) {
+            elements.currentConditions.style.display = 'block';
+            elements.currentLocation.textContent = state.locationName || 'Selected Location';
+            const gridIndex = latLonToGridIndex(lat, lon);
+            if (!gridIndex) return;
+            const now = new Date();
+            const forecastStart = CONFIG.forecastStart;
+            const hoursSinceStart = Math.floor((now - forecastStart) / (3600 * 1000));
+            const currentFH = Math.max(0, Math.min(hoursSinceStart, state.totalForecastHours));
+            elements.conditionsTime.textContent = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' IST';
+            const variables = ['T2', 'RH', 'WIND', 'RAIN'];
+            for (const varName of variables) {
+                const cacheKey = `${varName}_${currentFH}`;
+                if (!state.allGrids[cacheKey]) {
+                    try {
+                        const paddedFH = currentFH.toString().padStart(3, '0');
+                        const response = await fetch(`data_json/${varName}/${varName}_${paddedFH}.json`);
+                        if (response.ok) {
+                            const gridData = await response.json();
+                            state.allGrids[cacheKey] = gridData;
+                        }
+                    } catch (error) { continue; }
+                }
+                if (state.allGrids[cacheKey] && state.allGrids[cacheKey].values) {
+                    const gridData = state.allGrids[cacheKey];
+                    if (gridData.values[gridIndex.i] && gridData.values[gridIndex.i][gridIndex.j] !== undefined) {
+                        const value = gridData.values[gridIndex.i][gridIndex.j];
+                        const varConfig = CONFIG.variables[varName];
+                        const formatted = value !== null && !isNaN(value) ? value.toFixed(varConfig.precision) : '--';
+                        if (varName === 'T2') elements.currentTemp.innerHTML = `${formatted}°C <small>now</small>`;
+                        else if (varName === 'RH') elements.currentHumidity.innerHTML = `${formatted}% <small>now</small>`;
+                        else if (varName === 'WIND') elements.currentWind.innerHTML = `${formatted} m/s <small>now</small>`;
+                        else if (varName === 'RAIN') elements.currentRain.innerHTML = `${formatted} mm <small>now</small>`;
+                    }
+                }
+            }
+        }
+
+        async function loadHourlyForecast(lat, lon) {
+            const gridIndex = latLonToGridIndex(lat, lon);
+            if (!gridIndex) return;
+            elements.hourlyForecast.innerHTML = `<div class="forecast-loading"><div class="loading-spinner-small"></div><span>Loading hourly forecast...</span></div>`;
+            const now = new Date();
+            const forecastStart = CONFIG.forecastStart;
+            const hoursSinceStart = Math.floor((now - forecastStart) / (3600 * 1000));
+            const startFH = Math.max(0, Math.min(hoursSinceStart, state.totalForecastHours));
+            const forecastData = [];
+            const variable = 'T2';
+            for (let hour = 0; hour < 24; hour++) {
+                const fh = startFH + hour;
+                if (fh > state.totalForecastHours) break;
+                const cacheKey = `${variable}_${fh}`;
+                if (!state.allGrids[cacheKey]) {
+                    try {
+                        const paddedFH = fh.toString().padStart(3, '0');
+                        const response = await fetch(`data_json/${variable}/${variable}_${paddedFH}.json`);
+                        if (response.ok) {
+                            const gridData = await response.json();
+                            state.allGrids[cacheKey] = gridData;
+                        }
+                    } catch (error) { continue; }
+                }
+                if (state.allGrids[cacheKey] && state.allGrids[cacheKey].values) {
+                    const gridData = state.allGrids[cacheKey];
+                    if (gridData.values[gridIndex.i] && gridData.values[gridIndex.i][gridIndex.j] !== undefined) {
+                        const value = gridData.values[gridIndex.i][gridIndex.j];
+                        const forecastTime = new Date(forecastStart.getTime() + fh * 3600 * 1000);
+                        forecastData.push({ hour: hour, fh: fh, time: forecastTime, value: value, formattedTime: formatHourlyTime(forecastTime) });
+                    }
+                }
+            }
+            state.hourlyForecastData[`${lat.toFixed(4)}_${lon.toFixed(4)}`] = forecastData;
+            renderHourlyForecast(forecastData);
+        }
+
+        function renderHourlyForecast(forecastData) {
+            if (!forecastData || forecastData.length === 0) {
+                elements.hourlyForecast.innerHTML = '<div class="forecast-error">No forecast data available</div>';
+                return;
+            }
+            let html = '';
+            forecastData.forEach((item, index) => {
+                const isNow = index === 0;
+                const tempColor = item.value < 5 ? '#63b3ed' : (item.value < 15 ? '#9f7aea' : (item.value < 25 ? '#f6ad55' : '#f56565'));
+                html += `<div class="forecast-item ${isNow ? 'current-hour' : ''}"><div class="forecast-time">${isNow ? '<i class="fas fa-clock"></i> ' : ''}${item.formattedTime}</div><div class="forecast-temp" style="color: ${tempColor}; font-weight: 700;">${item.value.toFixed(1)}°C</div><div class="forecast-icon">${item.value < 5 ? '<i class="fas fa-snowflake"></i>' : (item.value < 15 ? '<i class="fas fa-cloud-sun"></i>' : (item.value < 25 ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-temperature-high"></i>'))}</div><div class="forecast-hour">+${item.fh}h</div></div>`;
+            });
+            elements.hourlyForecast.innerHTML = html;
+        }
+
+        // ==================== PRELOAD ALL TIMESERIES (ALL VARIABLES) ====================
+        async function preloadAllTimeseriesData() {
+            debug('Preloading all timeseries data for default location...');
+            const lat = CONFIG.defaultLocation.lat;
+            const lon = CONFIG.defaultLocation.lon;
+            const gridIndex = latLonToGridIndex(lat, lon);
+            if (!gridIndex) return;
+            const variables = ['T2', 'RH', 'WIND', 'RAIN'];
+            for (const variable of variables) {
+                const cacheKey = `${lat.toFixed(4)}_${lon.toFixed(4)}_${variable}`;
+                if (state.allTimeseriesData[cacheKey]) continue;
+                const timeseriesValues = [], hours = [], timestamps = [];
+                for (let fh = 0; fh <= state.totalForecastHours; fh++) {
+                    const gridCacheKey = `${variable}_${fh}`;
+                    if (!state.allGrids[gridCacheKey]) {
+                        try {
+                            const paddedFH = fh.toString().padStart(3, '0');
+                            const response = await fetch(`data_json/${variable}/${variable}_${paddedFH}.json`);
+                            if (response.ok) {
+                                const gridData = await response.json();
+                                state.allGrids[gridCacheKey] = gridData;
+                            }
+                        } catch (error) { continue; }
+                    }
+                    const gridData = state.allGrids[gridCacheKey];
+                    if (gridData && gridData.values && gridIndex.i < gridData.values.length && gridIndex.j < gridData.values[0].length) {
+                        const value = gridData.values[gridIndex.i][gridIndex.j];
+                        if (value !== null && !isNaN(value)) {
+                            timeseriesValues.push(value);
+                            hours.push(fh);
+                            timestamps.push(new Date(CONFIG.forecastStart.getTime() + fh * 3600 * 1000));
+                        }
+                    }
+                    if (fh % 50 === 0) await new Promise(resolve => setTimeout(resolve, 1));
+                }
+                state.allTimeseriesData[cacheKey] = { lat, lon, gridI: gridIndex.i, gridJ: gridIndex.j, variable, values: timeseriesValues, hours, timestamps };
+                debug(`Preloaded ${variable} timeseries (${timeseriesValues.length} points)`);
+            }
+            state.defaultLocationPreloaded = true;
+            updateStatus('All timeseries preloaded', 'success');
+        }
+
+        // ==================== TIMESERIES CHART ====================
+        async function fetchTimeseriesData(lat, lon, variable, gridI, gridJ) {
+            state.isLoadingTimeseries = true;
+            elements.chartLoading.style.display = 'flex';
+            elements.progressFill.style.width = '0%';
+            try {
+                updateStatus(`Loading timeseries data for ${variable}...`, 'info');
+                const cacheKey = `${lat.toFixed(4)}_${lon.toFixed(4)}_${variable}`;
+                if (state.allTimeseriesData[cacheKey]) {
+                    state.timeseriesData = state.allTimeseriesData[cacheKey];
+                    elements.chartLoading.style.display = 'none';
+                    state.isLoadingTimeseries = false;
+                    return true;
+                }
+                const timeseriesValues = [], hours = [], timestamps = [];
+                const totalHours = state.totalForecastHours;
+                for (let fh = 0; fh <= totalHours; fh++) {
+                    elements.progressFill.style.width = `${Math.round((fh / totalHours) * 100)}%`;
+                    elements.loadingText.textContent = `Loading hour ${fh}/${totalHours}...`;
+                    if (fh % 20 === 0) await new Promise(resolve => setTimeout(resolve, 1));
+                    const cacheKeyGrid = `${variable}_${fh}`;
+                    if (!state.allGrids[cacheKeyGrid]) {
+                        try {
+                            const paddedFH = fh.toString().padStart(3, '0');
+                            const response = await fetch(`data_json/${variable}/${variable}_${paddedFH}.json`);
+                            if (response.ok) {
+                                const gridData = await response.json();
+                                state.allGrids[cacheKeyGrid] = gridData;
+                            }
+                        } catch (error) { continue; }
+                    }
+                    const gridData = state.allGrids[cacheKeyGrid];
+                    if (gridData && gridData.values && gridI < gridData.values.length && gridJ < gridData.values[0].length) {
+                        const value = gridData.values[gridI][gridJ];
+                        if (value !== null && !isNaN(value)) {
+                            timeseriesValues.push(value);
+                            hours.push(fh);
+                            timestamps.push(new Date(CONFIG.forecastStart.getTime() + fh * 3600 * 1000));
+                        }
+                    }
+                }
+                state.timeseriesData = { lat, lon, gridI, gridJ, variable, values: timeseriesValues, hours, timestamps };
+                state.allTimeseriesData[cacheKey] = state.timeseriesData;
+                updateStatus(`Timeseries data loaded (${timeseriesValues.length} points)`, 'success');
+                return true;
+            } catch (error) {
+                debug(`Failed to load timeseries: ${error.message}`, error);
+                updateStatus(`Error loading timeseries`, 'error');
+                return false;
+            } finally {
+                elements.chartLoading.style.display = 'none';
+                state.isLoadingTimeseries = false;
+            }
+        }
+
+        async function showTimeseriesChart(lat, lon, variable, gridI, gridJ) {
+            elements.chartModal.style.display = 'block';
+            elements.chartTitle.textContent = `${CONFIG.variables[variable].name} Timeseries`;
+            elements.chartSubtitle.textContent = `📍 ${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E | Grid [${gridI}, ${gridJ}]`;
+            if (state.chartInstance) { state.chartInstance.destroy(); state.chartInstance = null; }
+            elements.chartStats.innerHTML = `<div class="stat-item"><div class="stat-label"><i class="fas fa-spinner fa-spin"></i> Loading Data</div><div class="stat-value">Please wait...</div><div class="stat-subvalue">Loading ${state.totalForecastHours} forecast hours</div></div>`;
+            elements.downloadCSVBtn.disabled = true;
+            elements.exportChartBtn.disabled = true;
+            const success = await fetchTimeseriesData(lat, lon, variable, gridI, gridJ);
+            elements.downloadCSVBtn.disabled = false;
+            elements.exportChartBtn.disabled = false;
+            if (!success || state.timeseriesData.values.length === 0) {
+                elements.chartSubtitle.textContent = `No data available at (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`;
+                elements.chartStats.innerHTML = `<div class="stat-item"><div class="stat-label"><i class="fas fa-exclamation-triangle"></i> No Data Available</div><div class="stat-value">--</div><div class="stat-subvalue">Could not load timeseries data</div></div>`;
+                return;
+            }
+            updateChartUI();
+            createBeautifulChart();
+        }
+
+        function updateChartUI() {
+            const data = state.timeseriesData;
+            const varConfig = CONFIG.variables[data.variable];
+            elements.chartTitle.textContent = `${varConfig.name} Timeseries`;
+            elements.chartSubtitle.innerHTML = `📍 <strong>${data.lat.toFixed(4)}°N, ${data.lon.toFixed(4)}°E</strong> | Grid [${data.gridI}, ${data.gridJ}] | <strong>${data.values.length}</strong> data points`;
+            updateChartStats(data);
+        }
+
+        function updateChartStats(data) {
+            if (data.values.length === 0) {
+                elements.chartStats.innerHTML = `<div class="stat-item"><div class="stat-label"><i class="fas fa-exclamation-triangle"></i> No Data</div><div class="stat-value">--</div><div class="stat-subvalue">No data points available</div></div>`;
+                return;
+            }
+            const varConfig = CONFIG.variables[data.variable];
+            const min = Math.min(...data.values);
+            const max = Math.max(...data.values);
+            const avg = data.values.reduce((a, b) => a + b, 0) / data.values.length;
+            const variance = data.values.reduce((acc, val) => acc + Math.pow(val - avg, 2), 0) / data.values.length;
+            const stdDev = Math.sqrt(variance);
+            const minIndex = data.values.indexOf(min);
+            const maxIndex = data.values.indexOf(max);
+            const minTime = data.timestamps[minIndex];
+            const maxTime = data.timestamps[maxIndex];
+            const range = max - min;
+
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            const n = data.values.length;
+            for (let i = 0; i < n; i++) {
+                sumX += i;
+                sumY += data.values[i];
+                sumXY += i * data.values[i];
+                sumX2 += i * i;
+            }
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const trend = slope > 0 ? '📈 Increasing' : slope < 0 ? '📉 Decreasing' : '➡️ Stable';
+            const formatTime = (date) => {
+                return date.toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }).toUpperCase() + ' IST';
+            };
+            elements.chartStats.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-label"><i class="fas fa-thermometer-empty"></i> Minimum</div>
+                    <div class="stat-value">${min.toFixed(varConfig.precision)} ${varConfig.unit}</div>
+                    <div class="stat-subvalue">at ${formatTime(minTime)}</div>
+                    </div>
+                    <div class="stat-item">
+                    <div class="stat-label"><i class="fas fa-thermometer-full"></i> Maximum</div>
+                    <div class="stat-value">${max.toFixed(varConfig.precision)} ${varConfig.unit}</div>
+                    <div class="stat-subvalue">at ${formatTime(maxTime)}</div>
+                    </div>
+                    <div class="stat-item">
+                    <div class="stat-label"><i class="fas fa-calculator"></i> Average</div>
+                    <div class="stat-value">${avg.toFixed(varConfig.precision)} ${varConfig.unit}</div>
+                    <div class="stat-subvalue">Range: ${range.toFixed(varConfig.precision)}</div>
+                    </div>
+                    <div class="stat-item">
+                    <div class="stat-label"><i class="fas fa-chart-line"></i> Statistics</div>
+                    <div class="stat-value">${data.values.length} points</div>
+                    <div class="stat-subvalue">${trend} (σ=${stdDev.toFixed(varConfig.precision)})</div>
+                    </div>
+            `;
+        }
+
+
+
+        function createBeautifulChart() {
+            const data = state.timeseriesData;
+            const varConfig = CONFIG.variables[data.variable];
+            const ctx = elements.timeseriesChart.getContext('2d');
+            if (state.chartInstance) state.chartInstance.destroy();
+            const formattedTimes = data.timestamps.map((ts, index) => {
+                if (data.timestamps.length > 50 && index % Math.ceil(data.timestamps.length / 15) !== 0) return '';
+                return ts.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', hour12: true }).toUpperCase();
+            });
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            const borderColor = state.currentTheme === 'dark' ? '#38bdf8' : '#0284c7';
+            const textColor = state.currentTheme === 'dark' ? '#f1f5f9' : '#0f172a';
+            const gridColor = state.currentTheme === 'dark' ? 'rgba(51,65,85,0.3)' : 'rgba(148,163,184,0.3)';
+            gradient.addColorStop(0, state.currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.8)' : 'rgba(2, 132, 199, 0.8)');
+            gradient.addColorStop(0.5, state.currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(2, 132, 199, 0.3)');
+            gradient.addColorStop(1, state.currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.05)' : 'rgba(2, 132, 199, 0.05)');
+            state.chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: formattedTimes,
+                    datasets: [{
+                        label: `${varConfig.name} (${varConfig.unit})`,
+                        data: data.values,
+                        borderColor: borderColor,
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointRadius: data.values.length > 100 ? 2 : 4,
+                        pointBackgroundColor: borderColor,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: borderColor,
+                        pointHoverBorderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        cubicInterpolationMode: 'monotone'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: textColor, font: { size: 14, family: "'Inter', 'Segoe UI', sans-serif", weight: '600' }, padding: 20, usePointStyle: true } },
+                        tooltip: {
+                            mode: 'index', intersect: false,
+                            backgroundColor: state.currentTheme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                            titleColor: textColor, bodyColor: textColor, borderColor: borderColor, borderWidth: 1, cornerRadius: 8, padding: 12,
+                            callbacks: {
+                                title: (tooltipItems) => {
+                                    const date = data.timestamps[tooltipItems[0].dataIndex];
+                                    return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase() + ' IST';
+                                },
+                                label: (context) => `${varConfig.name}: ${context.parsed.y.toFixed(varConfig.precision)} ${varConfig.unit}`,
+                                afterLabel: (context) => `Forecast Hour: +${data.hours[context.dataIndex]}h`
+                            }
+                        },
+                        zoom: { pan: { enabled: true, mode: 'xy', modifierKey: 'ctrl' }, zoom: { wheel: { enabled: true, speed: 0.1 }, pinch: { enabled: true }, mode: 'xy', drag: { enabled: true } } }
+                    },
+                    scales: {
+                        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, maxRotation: 45, minRotation: 45, font: { size: 11, family: "'Inter', sans-serif", weight: '500' }, maxTicksLimit: 15 }, title: { display: true, text: 'Date Time (IST)', color: textColor, font: { size: 13, weight: '600', family: "'Inter', sans-serif" } } },
+                        y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, font: { size: 12, family: "'Inter', sans-serif", weight: '500' }, callback: (value) => value.toFixed(varConfig.precision) + ' ' + varConfig.unit }, title: { display: true, text: `${varConfig.name} (${varConfig.unit})`, color: textColor, font: { size: 13, weight: '600', family: "'Inter', sans-serif" } } }
+                    },
+                    interaction: { intersect: false, mode: 'index' },
+                    animation: { duration: 1000, easing: 'easeOutQuart' },
+                    elements: { line: { tension: 0.3 }, point: { radius: data.values.length > 100 ? 2 : 4, hoverRadius: data.values.length > 100 ? 4 : 6 } },
+                    layout: { padding: { top: 20, right: 20, bottom: 20, left: 20 } }
+                }
+            });
+        }
+
+        function updateChartTheme() {
+            if (!state.chartInstance) return;
+            const data = state.timeseriesData;
+            const varConfig = CONFIG.variables[data.variable];
+            const ctx = elements.timeseriesChart.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            const borderColor = state.currentTheme === 'dark' ? '#38bdf8' : '#0284c7';
+            const textColor = state.currentTheme === 'dark' ? '#f1f5f9' : '#0f172a';
+            const gridColor = state.currentTheme === 'dark' ? 'rgba(51,65,85,0.3)' : 'rgba(148,163,184,0.3)';
+            gradient.addColorStop(0, state.currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.8)' : 'rgba(2, 132, 199, 0.8)');
+            gradient.addColorStop(0.5, state.currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(2, 132, 199, 0.3)');
+            gradient.addColorStop(1, state.currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.05)' : 'rgba(2, 132, 199, 0.05)');
+            state.chartInstance.options.scales.x.grid.color = gridColor;
+            state.chartInstance.options.scales.x.ticks.color = textColor;
+            state.chartInstance.options.scales.x.title.color = textColor;
+            state.chartInstance.options.scales.y.grid.color = gridColor;
+            state.chartInstance.options.scales.y.ticks.color = textColor;
+            state.chartInstance.options.scales.y.title.color = textColor;
+            state.chartInstance.options.plugins.legend.labels.color = textColor;
+            state.chartInstance.options.plugins.tooltip.backgroundColor = state.currentTheme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+            state.chartInstance.options.plugins.tooltip.titleColor = textColor;
+            state.chartInstance.options.plugins.tooltip.bodyColor = textColor;
+            state.chartInstance.options.plugins.tooltip.borderColor = borderColor;
+            state.chartInstance.data.datasets[0].borderColor = borderColor;
+            state.chartInstance.data.datasets[0].backgroundColor = gradient;
+            state.chartInstance.data.datasets[0].pointBackgroundColor = borderColor;
+            state.chartInstance.data.datasets[0].pointHoverBorderColor = borderColor;
+            state.chartInstance.update('none');
+        }
+
+        function exportChartAsImage() {
+            if (!state.chartInstance) { updateStatus('No chart to export', 'warn'); return; }
+            try {
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().split('T')[0];
+                const location = state.timeseriesData ? `${state.timeseriesData.lat.toFixed(2)}_${state.timeseriesData.lon.toFixed(2)}` : 'location';
+                const variable = state.timeseriesData?.variable || 'data';
+                link.download = `weatherxplorers_${variable}_${location}_${timestamp}.png`;
+                link.href = state.chartInstance.toBase64Image();
+                link.click();
+                updateStatus('Chart exported as PNG image', 'success');
+            } catch (error) { updateStatus('Failed to export chart', 'error'); }
+        }
+
+        function downloadTimeseriesCSV() {
+            const data = state.timeseriesData;
+            const varConfig = CONFIG.variables[data.variable];
+            if (!data || data.values.length === 0) { updateStatus('No data to download', 'warn'); return; }
+            try {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += `WRF Forecast Timeseries - WeatherXplorers.com\n`;
+                csvContent += `Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST\n`;
+                csvContent += `Location: ${data.lat.toFixed(6)}°N, ${data.lon.toFixed(6)}°E\n`;
+                csvContent += `Variable: ${varConfig.name} (${varConfig.unit})\n`;
+                csvContent += `Grid Cell: [${data.gridI}, ${data.gridJ}]\n`;
+                csvContent += `Total Forecast Hours: ${state.totalForecastHours}\n`;
+                csvContent += `Data Points: ${data.values.length}\n`;
+                csvContent += `Forecast Start: ${formatISTTime(CONFIG.forecastStart)}\n`;
+                csvContent += `\nForecast Hour,Date Time (IST),${varConfig.name} (${varConfig.unit})\n`;
+                data.hours.forEach((hour, index) => {
+                    const timestamp = data.timestamps[index];
+                    const formattedTime = timestamp.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '');
+                    csvContent += `${hour},${formattedTime},${data.values[index].toFixed(varConfig.precision)}\n`;
+                });
+                if (data.values.length > 0) {
+                    const min = Math.min(...data.values);
+                    const max = Math.max(...data.values);
+                    const avg = data.values.reduce((a, b) => a + b, 0) / data.values.length;
+                    const variance = data.values.reduce((acc, val) => acc + Math.pow(val - avg, 2), 0) / data.values.length;
+                    const stdDev = Math.sqrt(variance);
+                    csvContent += `\nSummary Statistics\nMinimum,${min.toFixed(varConfig.precision)} ${varConfig.unit}\nMaximum,${max.toFixed(varConfig.precision)} ${varConfig.unit}\nAverage,${avg.toFixed(varConfig.precision)} ${varConfig.unit}\nStandard Deviation,${stdDev.toFixed(varConfig.precision)} ${varConfig.unit}\nRange,${(max - min).toFixed(varConfig.precision)} ${varConfig.unit}\nTotal Points,${data.values.length}\n`;
+                }
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', `weatherxplorers_${data.variable}_${data.lat.toFixed(4)}_${data.lon.toFixed(4)}_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                updateStatus('CSV downloaded successfully', 'success');
+            } catch (error) { updateStatus('Failed to download CSV', 'error'); }
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        function setupEventListeners() {
+            elements.playBtn.addEventListener('click', toggleAnimation);
+            elements.speedSelect.addEventListener('change', (e) => {
+                state.currentSpeed = parseFloat(e.target.value);
+                if (state.isPlaying) { stopAnimation(); startAnimation(); }
+            });
+            elements.slider.addEventListener('input', (e) => { stopAnimation(); showFrame(parseInt(e.target.value)); });
+            elements.varSelect.addEventListener('change', () => { stopAnimation(); state.allGrids = {}; detectTotalForecastHours().then(() => showFrame(state.currentFH)); });
+            elements.nextBtn.addEventListener('click', () => { stopAnimation(); showFrame(Math.min(state.currentFH + 1, state.totalForecastHours)); });
+            elements.prevBtn.addEventListener('click', () => { stopAnimation(); showFrame(Math.max(state.currentFH - 1, 0)); });
+            elements.searchInput.addEventListener('input', (e) => {
+                clearTimeout(state.searchTimeout);
+                state.searchTimeout = setTimeout(() => searchLocation(e.target.value), 500);
+            });
+            elements.searchBtn.addEventListener('click', () => searchLocation(elements.searchInput.value));
+            elements.geoBtn.addEventListener('click', getUserLocation);
+            document.addEventListener('click', (e) => { if (!elements.searchInput.contains(e.target) && !elements.searchResults.contains(e.target)) elements.searchResults.style.display = 'none'; });
+            state.map.on('mousemove', (e) => { const { lat, lng } = e.latlng; updateCoordinateDisplay(lat, lng); updateValueDisplay(lat, lng); });
+            state.map.on('click', async (e) => {
+                const { lat, lng } = e.latlng;
+                state.lastClickPos = e.latlng;
+                const result = getValueAtCoordinates(lat, lng);
+                if (state.markers.clickMarker) state.map.removeLayer(state.markers.clickMarker);
+                state.markers.clickMarker = L.marker([lat, lng], { icon: L.divIcon({ className: 'click-marker', html: '<div style="background: radial-gradient(circle, #0284c7 40%, #0369a1); width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>', iconSize: [20, 20] }) }).addTo(state.map);
+                if (result.value !== null) {
+                    const variable = elements.varSelect.value;
+                    const varConfig = CONFIG.variables[variable];
+                    const formattedValue = result.value.toFixed(varConfig.precision);
+                    state.markers.clickMarker.bindTooltip(`<b>${varConfig.name}:</b> ${formattedValue} ${varConfig.unit}<br><small>Grid [${result.gridIndex.i}, ${result.gridIndex.j}]</small><br><small>Click for timeseries</small>`, { permanent: true, direction: 'top', className: 'value-tooltip' }).openTooltip();
+                }
+                updateValueDisplay(lat, lng);
+                if (result.gridIndex && result.value !== null) {
+                    const variable = elements.varSelect.value;
+                    updateStatus('Opening timeseries chart...', 'info');
+                    await showTimeseriesChart(lat, lng, variable, result.gridIndex.i, result.gridIndex.j);
+                }
+            });
+            elements.downloadCSVBtn.addEventListener('click', downloadTimeseriesCSV);
+            elements.exportChartBtn.addEventListener('click', exportChartAsImage);
+            elements.closeChartBtn.addEventListener('click', () => { elements.chartModal.style.display = 'none'; });
+            elements.chartModalClose.addEventListener('click', () => { elements.chartModal.style.display = 'none'; });
+            window.addEventListener('click', (e) => { if (e.target === elements.chartModal) elements.chartModal.style.display = 'none'; });
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                if (e.key === ' ') { e.preventDefault(); toggleAnimation(); }
+                else if (e.key === 'ArrowRight') elements.nextBtn.click();
+                else if (e.key === 'ArrowLeft') elements.prevBtn.click();
+                else if (e.key === '0') { stopAnimation(); showFrame(0); }
+                else if (e.key === 't' || e.key === 'T') elements.themeToggle.click();
+                else if (e.key === 'g' || e.key === 'G') getUserLocation();
+                else if (e.key === 'Escape') elements.chartModal.style.display = 'none';
+            });
+            window.addEventListener('resize', () => { if (state.map) setTimeout(() => state.map.invalidateSize(), 100); if (state.chartInstance) state.chartInstance.resize(); });
+        }
+
+        // ==================== SEARCH ====================
+        async function searchLocation(query) {
+            if (!query || query.length < 3) { elements.searchResults.style.display = 'none'; return; }
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}, Uttarakhand, India&limit=5`);
+                const results = await response.json();
+                if (results.length > 0) {
+                    elements.searchResults.innerHTML = '';
+                    results.forEach(result => {
+                        const item = document.createElement('div');
+                        item.className = 'search-result-item';
+                        item.innerHTML = `<i class="fas fa-map-pin"></i> <strong>${result.display_name.split(',')[0]}</strong><br><small>${result.display_name.split(',').slice(1, 3).join(',')}</small>`;
+                        item.addEventListener('click', () => {
+                            const lat = parseFloat(result.lat);
+                            const lon = parseFloat(result.lon);
+                            goToLocation(lat, lon, result.display_name.split(',')[0], true);
+                            elements.searchResults.style.display = 'none';
+                            elements.searchInput.value = result.display_name.split(',')[0];
+                        });
+                        elements.searchResults.appendChild(item);
+                    });
+                    elements.searchResults.style.display = 'block';
+                } else elements.searchResults.style.display = 'none';
+            } catch (error) { debug('Search error:', error); }
+        }
+
+        // ==================== INITIALIZE ====================
+       async function initializeDashboard() {
+            debug('Starting dashboard initialization...');
+            try {
+                initializeMap();
+                await detectTotalForecastHours();
+                setupThemeToggle();
+                setupEventListeners();
+                updatePlayButton();
+        
+        // Calculate current forecast hour based on current time
+                const now = new Date();
+                const forecastStart = CONFIG.forecastStart;
+                const hoursSinceStart = Math.floor((now - forecastStart) / (3600 * 1000));
+                const currentFH = Math.max(0, Math.min(hoursSinceStart, state.totalForecastHours));
+        
+                debug(`Current time: ${now.toISOString()}`);
+                debug(`Forecast start: ${forecastStart.toISOString()}`);
+                debug(`Hours since start: ${hoursSinceStart}`);
+                debug(`Loading spatial plot for current forecast hour: ${currentFH}`);
+        
+        // Show the spatial plot for the current time
+                await showFrame(currentFH);
+        
+                updateStatus('Click on map to view timeseries', 'success');
+                setTimeout(() => autoDetectLocation(), 1000);
+        // Preload all timeseries for default location immediately
+                setTimeout(() => preloadAllTimeseriesData(), 500);
+                updateCurrentDateTime();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                updateStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+
+
+
+        function updatePlayButton() {
+            elements.playBtn.innerHTML = state.isPlaying ? '<i class="fas fa-pause"></i> Pause' : '<i class="fas fa-play"></i> Play';
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+        window.WRFDashboard = { config: CONFIG, state, elements };
+    </script>
+</body>
+</html>

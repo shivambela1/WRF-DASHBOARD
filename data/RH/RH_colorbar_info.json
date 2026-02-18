@@ -1,0 +1,15 @@
+{
+  "variable": "RH",
+  "colorbar_min": 8.0,
+  "colorbar_max": 91.0,
+  "unit": "%",
+  "percentiles_used": "2-98%",
+  "actual_data_min": 0.0,
+  "actual_data_max": 100.0,
+  "colorbar_size": {
+    "width_inches": 24,
+    "height_inches": 2,
+    "tick_fontsize": 16,
+    "title_fontsize": 18
+  }
+}
