@@ -1186,10 +1186,40 @@
 
         // ==================== MAP ====================
         function initializeMap() {
-            state.map = L.map('map', { attributionControl: false, zoomControl: true, minZoom: 6, maxZoom: 12, maxBounds: CONFIG.mapViewBounds, zoomControl: false, preferCanvas: true, fadeAnimation: false, markerZoomAnimation: false });
+            state.map = L.map('map', { 
+                attributionControl: false, 
+                zoomControl: true, 
+                minZoom: 7.5,              // Minimum zoom level (zoomed out limit)
+                maxZoom: 15,              // Maximum zoom level (zoomed in limit)
+                maxBounds: CONFIG.mapViewBounds,  // Restrict panning to these bounds
+                maxBoundsViscosity: 1.0,  // Make bounds completely restrictive
+                zoomControl: false, 
+                preferCanvas: true, 
+                fadeAnimation: false, 
+                markerZoomAnimation: false 
+            });
+            
             L.control.zoom({ position: 'bottomright' }).addTo(state.map);
+            
+            // Set the initial view
             state.map.setView([29.5, 79.5], 7);
-            state.markers.boundaryLayer = L.rectangle(CONFIG.wrfBounds, { color: '#FF4444', weight: 1, fillColor: '#FF4444', fillOpacity: 0.05, interactive: true, dashArray: '5, 5' }).addTo(state.map);
+            
+            // Add boundary layer
+            state.markers.boundaryLayer = L.rectangle(CONFIG.wrfBounds, { 
+                color: '#FF4444', 
+                weight: 1, 
+                fillColor: '#FF4444', 
+                fillOpacity: 0.05, 
+                interactive: true, 
+                dashArray: '5, 5' 
+            }).addTo(state.map);
+            
+            // Force the map to stay within bounds when user tries to zoom out
+            state.map.on('zoomend', function() {
+                if (state.map.getZoom() < state.map.getMinZoom()) {
+                    state.map.setZoom(state.map.getMinZoom());
+                }
+            });
         }
 
         function isInWRFDomain(lat, lon) {
@@ -1990,9 +2020,6 @@
                 updateStatus(`Error: ${error.message}`, 'error');
             }
         }
-
-
-
 
         function updatePlayButton() {
             elements.playBtn.innerHTML = state.isPlaying ? '<i class="fas fa-pause"></i> Pause' : '<i class="fas fa-play"></i> Play';
